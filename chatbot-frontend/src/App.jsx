@@ -1,14 +1,13 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
-
-const API_URL = "http://localhost:3001/chat";
+import { sendMessage } from "./services/api";
 
 function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function sendMessage() {
+  async function handleSend() {
     if (!input.trim() || loading) return;
 
     const userMessage = { role: "user", content: input };
@@ -19,15 +18,8 @@ function App() {
     setLoading(true);
 
     try {
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages }),
-      });
-
-      const data = await response.json();
-      setMessages([...newMessages, { role: "assistant", content: data.reply }]);
-
+      const reply = await sendMessage(newMessages);
+      setMessages([...newMessages, { role: "assistant", content: reply }]);
     } catch (error) {
       console.error("Erro:", error);
     } finally {
@@ -36,93 +28,72 @@ function App() {
   }
 
   function handleKeyDown(e) {
-    if (e.key === "Enter") sendMessage();
+    if (e.key === "Enter") handleSend();
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: "40px auto", padding: "0 16px" }}>
-      <h2 style={{ marginBottom: 16 }}>Chatbot</h2>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-md flex flex-col h-[600px]">
 
-      {/* Histórico de mensagens */}
-      <div style={{
-        border: "1px solid #ddd",
-        borderRadius: 8,
-        padding: 16,
-        height: 400,
-        overflowY: "auto",
-        background: "#fff",
-        marginBottom: 12,
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-      }}>
-        {messages.length === 0 && (
-          <p style={{ color: "#aaa", textAlign: "center", marginTop: 160 }}>
-            Comece uma conversa...
-          </p>
-        )}
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h1 className="text-lg font-semibold text-gray-800">Chatbot</h1>
+          <p className="text-xs text-gray-400">Powered by Gemini</p>
+        </div>
 
-        {messages.map((msg, i) => (
-          <div key={i} style={{
-            alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
-            background: msg.role === "user" ? "#0084ff" : "#f0f0f0",
-            color: msg.role === "user" ? "#fff" : "#333",
-            padding: "8px 14px",
-            borderRadius: 18,
-            maxWidth: "75%",
-            fontSize: 14,
-            lineHeight: 1.5,
-          }}>
-            <ReactMarkdown>{msg.content}</ReactMarkdown>
-          </div>
-        ))}
+        {/* Histórico */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3">
+          {messages.length === 0 && (
+            <p className="text-gray-400 text-sm text-center mt-auto mb-auto">
+              Comece uma conversa...
+            </p>
+          )}
 
-        {loading && (
-          <div style={{
-            alignSelf: "flex-start",
-            background: "#f0f0f0",
-            color: "#999",
-            padding: "8px 14px",
-            borderRadius: 18,
-            fontSize: 14,
-          }}>
-            digitando...
-          </div>
-        )}
-      </div>
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`px-4 py-2 rounded-2xl text-sm max-w-[75%] leading-relaxed
+                  ${msg.role === "user"
+                    ? "bg-blue-500 text-white rounded-br-sm"
+                    : "bg-gray-100 text-gray-800 rounded-bl-sm"
+                  }`}
+              >
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+              </div>
+            </div>
+          ))}
 
-      {/* Campo de input */}
-      <div style={{ display: "flex", gap: 8 }}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Digite uma mensagem..."
-          disabled={loading}
-          style={{
-            flex: 1,
-            padding: "10px 14px",
-            borderRadius: 8,
-            border: "1px solid #ddd",
-            fontSize: 14,
-            outline: "none",
-          }}
-        />
-        <button
-          onClick={sendMessage}
-          disabled={loading}
-          style={{
-            padding: "10px 20px",
-            borderRadius: 8,
-            border: "none",
-            background: loading ? "#aaa" : "#0084ff",
-            color: "#fff",
-            fontSize: 14,
-            cursor: loading ? "not-allowed" : "pointer",
-          }}
-        >
-          Enviar
-        </button>
+          {loading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 text-gray-400 px-4 py-2 rounded-2xl rounded-bl-sm text-sm">
+                digitando...
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Input */}
+        <div className="px-6 py-4 border-t border-gray-200 flex gap-3">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Digite uma mensagem..."
+            disabled={loading}
+            className="flex-1 bg-gray-100 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
+          />
+          <button
+            onClick={handleSend}
+            disabled={loading}
+            className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white text-sm font-medium px-5 py-2 rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed"
+          >
+            Enviar
+          </button>
+        </div>
+
       </div>
     </div>
   );
