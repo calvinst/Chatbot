@@ -1,11 +1,19 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { sendMessage } from "../services/api";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Send } from "lucide-react";
 
-function ChatWindow() {
-  const [messages, setMessages] = useState([]);
+function ChatWindow({ messages, setMessages }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
   async function handleSend() {
     if (!input.trim() || loading) return;
@@ -32,63 +40,80 @@ function ChatWindow() {
   }
 
   return (
-    <div className="fixed bottom-24 right-6 w-96 bg-white rounded-2xl shadow-xl flex flex-col h-[500px] z-50 border border-gray-200">
-
+    <div className="fixed bottom-24 right-6 w-96 bg-background border border-border rounded-2xl shadow-xl flex flex-col h-125 z-50">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-200 rounded-t-2xl bg-blue-500">
-        <h1 className="text-base font-semibold text-white">Chatbot</h1>
-        <p className="text-xs text-blue-100">Powered by Gemini</p>
+      <div className="px-5 py-4 border-b border-border rounded-t-2xl flex items-center gap-3">
+        <Avatar className="w-8 h-8">
+          <AvatarFallback className="bg-blue-600 text-primary-foreground text-xs">AI</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="text-sm font-semibold">Assistente</p>
+          <p className="text-xs text-muted-foreground">Powered by Gemini</p>
+        </div>
       </div>
 
       {/* Histórico */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
-        {messages.length === 0 && (
-          <p className="text-gray-400 text-sm text-center my-auto">
-            Comece uma conversa...
-          </p>
-        )}
+      <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
+        <div className="flex flex-col gap-3">
+          {messages.length === 0 && (
+            <p className="text-muted-foreground text-sm text-center mt-16">Comece uma conversa...</p>
+          )}
 
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`px-4 py-2 rounded-2xl text-sm max-w-[80%] leading-relaxed
-              ${msg.role === "user"
-                ? "bg-blue-500 text-white rounded-br-sm"
-                : "bg-gray-100 text-gray-800 rounded-bl-sm"
-              }`}
-            >
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
-            </div>
-          </div>
-        ))}
+          {messages.map((msg, i) => (
+            <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+              {msg.role === "assistant" && (
+                <Avatar className="w-7 h-7 mt-1 shrink-0">
+                  <AvatarFallback className="bg-blue-600 text-primary-foreground text-xs">AI</AvatarFallback>
+                </Avatar>
+              )}
 
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 text-gray-400 px-4 py-2 rounded-2xl rounded-bl-sm text-sm">
-              digitando...
+              <div
+                className={`px-4 py-2 rounded-2xl text-sm max-w-[78%] leading-relaxed
+          ${
+            msg.role === "user"
+              ? "bg-primary text-primary-foreground rounded-br-sm"
+              : "bg-muted text-foreground rounded-bl-sm"
+          }`}
+              >
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+              </div>
             </div>
-          </div>
-        )}
+          ))}
+
+          {loading && (
+            <div className="flex gap-2 justify-start">
+              <Avatar className="w-7 h-7 mt-1 shrink-0">
+                <AvatarFallback className="bg-blue-600 text-primary-foreground text-xs">AI</AvatarFallback>
+              </Avatar>
+              <div className="bg-muted text-muted-foreground px-4 py-2 rounded-2xl rounded-bl-sm text-sm">
+                digitando...
+              </div>
+            </div>
+          )}
+
+          <div ref={bottomRef} />
+        </div>
       </div>
 
       {/* Input */}
-      <div className="px-4 py-3 border-t border-gray-200 flex gap-2">
-        <input
+      <div className="px-4 py-3 border-t border-border flex gap-2">
+        <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Digite uma mensagem..."
           disabled={loading}
-          className="flex-1 bg-gray-100 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
+          className="flex-1 rounded-xl"
         />
-        <button
+        <Button
           onClick={handleSend}
           disabled={loading}
-          className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed"
+          size="icon"
+          className="rounded-xl shrink-0 cursor-pointer text-white bg-blue-600"
         >
-          Enviar
-        </button>
+          <Send className="w-4 h-4" />
+        </Button>
       </div>
-
     </div>
   );
 }
